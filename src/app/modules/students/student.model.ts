@@ -160,7 +160,22 @@ const studentSchema = new Schema<TStudent,StudentModel>({
       },
       default: 'active',
     },
-});
+    isDeleted:{
+      type: Boolean,
+      default: false,
+    }
+},{
+  toJSON:{
+    virtuals:true
+  }
+}
+
+);
+
+// virtual Mongoose database -- it helps no need to store database. it works from database fields.
+studentSchema.virtual('fullName').get(function(){
+  return `${this.name.firstName} ${this.name.middleName} ${this.name.lastName}`
+}) 
 
 // create pre save mongoose Middlewarw/hook
 
@@ -180,6 +195,23 @@ studentSchema.post('save', function (doc,next) {
   doc.password="";
   next()
  
+});
+
+// QueryMiiddleware / hook
+
+studentSchema.pre('find', function(next){
+  this.find({isDeleted:{$ne:true}})  // here this is used for reference, that means that before execution getalldata queries this find is executed then service data find will executue for filtering data.then we get filter data from database.
+  next()
+})
+studentSchema.pre('findOne',function(next){
+  this.find({isDeleted:{$ne:true}})  
+  next()
+})
+
+// aggregration used for filtering data
+studentSchema.pre('aggregate', function (next) {
+  this.pipeline().unshift({ $match: { isDeleted: { $ne: true } } });
+  next();
 });
 
 // craeting static Method
